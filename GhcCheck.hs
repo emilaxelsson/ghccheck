@@ -59,9 +59,9 @@ readArgs args = (opts,rest)
   where
     rest = filter (`notElem` flags) args
     opts = Options
-      { helpOpt    = "--help"    `elem` args
-      , versionOpt = "--version" `elem` args
-      , noConfOpt  = "--no-conf" `elem` args
+      { helpOpt    = "-?" `elem` args || "--help"    `elem` args
+      , versionOpt = "-V" `elem` args || "--version" `elem` args
+      , noConfOpt  = "-n" `elem` args || "--no-conf" `elem` args
       }
 
 -- | Extract all options from a @.ghci@ file. Options are lines beginning with @:set @.
