@@ -46,5 +46,5 @@ In order to use `ghccheck` in a Cabal sandbox, just call it as follows:
 
     cabal exec -- ghccheck ARGS
 
-(This make `ghc` aware of the sandbox location, but it will not get any other things, such as language extensions, from the Cabal package.)
+(This will make `ghc` aware of the sandbox location, but it will not get any other things, such as language extensions, from the Cabal package.)
 
