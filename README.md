@@ -48,3 +48,15 @@ In order to use `ghccheck` in a Cabal sandbox, just call it as follows:
 
 (This will make `ghc` aware of the sandbox location, but it will not get any other things, such as language extensions, from the Cabal package.)
 
+
+
+Limitations
+----------------------------------------------------------------------------------------------------
+
+Since `ghccheck` calls `ghc --make`, it will assume that any module named `Main` (i.e. also modules without any module header) contains a `main` definition. I have not been able to work around this.
+
+The solution is to
+
+  * always declare a module header so that modules are not implicitly named `Main`, or
+  * make sure to include a `main` definition in the module.
+
