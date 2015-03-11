@@ -95,7 +95,7 @@ main = do
                    putStrLn $ "Configuration file " ++ confFiles ++ " not found"
                    return ""
       let cmd = Text.unwords
-            $  "ghc -O0 --make -no-link -hidir .ghc-temp -odir .ghc-temp"
+            $  "ghc -O0 --make -no-link -dynamic -hidir .ghc-temp -odir .ghc-temp"
             :  gopts
             ++ map Text.pack rest
       Text.putStrLn cmd
@@ -114,4 +114,7 @@ main = do
         file <- Text.readFile ghccheck
         putStrLn $ "Using configuration file " ++ ghccheck
         return file
+
+-- The `-dynamic` flag is needed to make it possible for GHCi to use the generated object files. It
+-- also seems to make compilation a bit faster.
 
