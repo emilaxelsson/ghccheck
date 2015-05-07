@@ -39,6 +39,15 @@ In order to ignore the configuration file, use the option `-n`/`--no-conf`.
 
 
 
+GHCi integration
+----------------------------------------------------------------------------------------------------
+
+In order to make GHCi use the object files produced by `ghccheck`, just start GHCi as follows
+
+    ghci -hidir .ghc-temp -odir .ghc-temp ...
+
+
+
 Cabal sandbox integration
 ----------------------------------------------------------------------------------------------------
 
