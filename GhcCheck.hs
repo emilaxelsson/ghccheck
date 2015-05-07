@@ -72,6 +72,25 @@ listGOpts = filter (/="") . map getOpt . Text.lines
         (":set ",opt) -> opt
         _ -> ""
 
+-- | Read a configuration file and expand any @:script@ commands
+readConfFile :: FilePath -> IO Text
+readConfFile = fmap Text.unlines . readConf
+  where
+    readConf :: FilePath -> IO [Text]
+    readConf file = do
+        conf <- Text.readFile file
+        fmap concat $ mapM expand $ Text.lines conf
+
+    expand :: Text -> IO [Text]
+    expand l = case Text.splitAt 8 l of
+        (":script ",file) ->
+          readConf (Text.unpack file) `catch` \(_ :: IOException) -> do
+            putStrLn $ "Warning: Imported script "
+                    ++ Text.unpack file
+                    ++ " not found; ignored"
+            return []
+        _ -> return [l]
+
 -- Unfortunately, I wasn't able to use `processArgs` to parse the command line. The problem is that
 -- I wasn't able to allow arbitrary additional options to be passed on to GHC. This is why I use
 -- `fmap readArgs getArgs`.
@@ -106,13 +125,13 @@ main = do
   where
     readGhci = do
         pwd  <- getCurrentDirectory
-        file <- Text.readFile ".ghci"
         putStrLn $ "Using configuration file " ++ pwd </> ".ghci"
+        file <- readConfFile ".ghci"
         return file
 
     readGhccheck ghccheck = do
-        file <- Text.readFile ghccheck
         putStrLn $ "Using configuration file " ++ ghccheck
+        file <- readConfFile ghccheck
         return file
 
 -- The `-dynamic` flag is needed to make it possible for GHCi to use the generated object files. It

@@ -33,7 +33,7 @@ Configuration
   * `.ghci` (in the directory where `ghccheck` is called)
   * `$HOME/.ghccheck`
 
-Any line beginning with `:set ` in the GHCi configuration files is recognized as an option to pass to GHC.
+Any line beginning with `:set ` in the GHCi configuration files is recognized as an option to pass to GHC. Also `:script <filename>` instructions are recognized and result in the file `filename` to be expanded into the configuration file.
 
 In order to ignore the configuration file, use the option `-n`/`--no-conf`.
 
