@@ -20,13 +20,14 @@ import Paths_ghccheck
 
 -- | Command line options
 data Options = Options
-    { helpOpt    :: Bool
-    , versionOpt :: Bool
-    , noConfOpt  :: Bool
+    { helpOpt        :: Bool
+    , versionOpt     :: Bool
+    , noConfOpt      :: Bool
+    , interactiveOpt :: Bool
     }
   deriving (Show)
 
-defaultOptions = Options False False False
+defaultOptions = Options False False False False
 
 confFiles = "(.ghci or $HOME/.ghccheck)"
 
@@ -43,6 +44,10 @@ argMode = mode
         ["n","no-conf"]
         (\o -> o {noConfOpt = True})
         ("Don't read a configuration file " ++ confFiles)
+    , flagNone
+        ["i", "interactive"]
+        (\o -> o {interactiveOpt = True})
+        ("Interactive mode (uses GHCi)")
     ]
 
 -- | All flags (including dashes) recognized by ghccheck
@@ -59,9 +64,10 @@ readArgs args = (opts,rest)
   where
     rest = filter (`notElem` flags) args
     opts = Options
-      { helpOpt    = "-?" `elem` args || "--help"    `elem` args
-      , versionOpt = "-V" `elem` args || "--version" `elem` args
-      , noConfOpt  = "-n" `elem` args || "--no-conf" `elem` args
+      { helpOpt        = "-?" `elem` args || "--help"        `elem` args
+      , versionOpt     = "-V" `elem` args || "--version"     `elem` args
+      , noConfOpt      = "-n" `elem` args || "--no-conf"     `elem` args
+      , interactiveOpt = "-i" `elem` args || "--interactive" `elem` args
       }
 
 -- | Extract all options from a @.ghci@ file. Options are lines beginning with @:set @.
@@ -113,9 +119,15 @@ main = do
                  readGhccheck ghccheck `catch` \(_ :: IOException) -> do
                    putStrLn $ "Configuration file " ++ confFiles ++ " not found"
                    return ""
+      let ghcMode = if interactiveOpt opts
+                      then "--interactive -ignore-dot-ghci"
+                      else "--make"
       let cmd = Text.unwords
-            $  "ghc -O0 --make -no-link -dynamic -hidir .ghc-temp -odir .ghc-temp"
-            :  gopts
+            $  [ "ghc"
+               , ghcMode
+               , "-O0 -no-link -dynamic -hidir .ghc-temp -odir .ghc-temp"
+               ]
+            ++ gopts
             ++ map Text.pack rest
       Text.putStrLn cmd
       stat <- system $ Text.unpack cmd

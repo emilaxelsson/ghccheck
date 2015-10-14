@@ -12,14 +12,15 @@ Usage:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ghccheck [OPTIONS] ...  (urecognized options and files passed on to GHC)
 
-  -? --help     Display help message
-  -V --version  Print version information
-  -n --no-conf  Don't read a configuration file (.ghci or $HOME/.ghccheck)
+  -? --help         Display help message
+  -V --version      Print version information
+  -n --no-conf      Don't read a configuration file (.ghci or $HOME/.ghccheck)
+  -i --interactive  Interactive mode (uses GHCi)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When calling `ghccheck ARG1 ARG2 ...`, it will call GHC with something like
 
-    ghc -O0 --make -no-link -hidir .ghc-temp -odir .ghc-temp GHCI-OPTS ARG1 ARG2 ...
+    ghc --make -O0 -no-link -hidir .ghc-temp -odir .ghc-temp GHCI-OPTS ARG1 ARG2 ...
 
 where `GHCI-OPTS` is a list of options found in a GHCi configuration file (see below) and `ARG1 ARG2 ...` are the arguments (options or files) passed to `ghccheck`, *except* those flags that are recognized by `ghccheck` itself (see above).
 
@@ -36,15 +37,6 @@ Configuration
 Any line beginning with `:set ` in the GHCi configuration files is recognized as an option to pass to GHC. Also `:script <filename>` instructions are recognized and result in the file `filename` to be expanded into the configuration file.
 
 In order to ignore the configuration file, use the option `-n`/`--no-conf`.
-
-
-
-GHCi integration
-----------------------------------------------------------------------------------------------------
-
-In order to make GHCi use the object files produced by `ghccheck`, just start GHCi as follows
-
-    ghci -hidir .ghc-temp -odir .ghc-temp ...
 
 
 
