@@ -121,11 +121,11 @@ main = do
                    return ""
       let ghcMode = if interactiveOpt opts
                       then "--interactive -ignore-dot-ghci"
-                      else "--make"
+                      else "--make -O0 -no-link -dynamic"
       let cmd = Text.unwords
             $  [ "ghc"
                , ghcMode
-               , "-O0 -no-link -dynamic -hidir .ghc-temp -odir .ghc-temp"
+               , "-hidir .ghc-temp -odir .ghc-temp"
                ]
             ++ gopts
             ++ map Text.pack rest
@@ -145,6 +145,33 @@ main = do
         putStrLn $ "Using configuration file " ++ ghccheck
         file <- readConfFile ghccheck
         return file
+
+-- The `-no-link` flag should not be used in interactive mode. First, it causes
+-- GHCi to expect a `main` method in the `Main` module, and second, it gives
+-- strange results when reloading. Take the following file as an example:
+--
+--     module Module where
+--
+--     headd :: [a] -> a
+--     headd []    = error "headd: empty list"
+--     headd (a:_) = a
+--
+-- Load the file using
+--
+--     ghc --interactive -no-link Module.hs
+--
+-- Evaluate `headd`:
+--
+--     *Module> head []
+--     *** Exception: Prelude.head: empty list
+--
+-- Comment out the line `headd [] = ...` and reload the file. Strangely `head`
+-- behaves just like before the change:
+--
+--     *Module> head []
+--     *** Exception: Prelude.head: empty list
+--
+-- This was tested on GHC 7.10.2.
 
 -- The `-dynamic` flag is needed to make it possible for GHCi to use the generated object files. It
 -- also seems to make compilation a bit faster.
