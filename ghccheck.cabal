@@ -23,7 +23,7 @@ executable ghccheck
     ScopedTypeVariables
 
   build-depends:
-    base < 4.9,
+    base < 6,
     cmdargs,
     directory,
     filepath,
