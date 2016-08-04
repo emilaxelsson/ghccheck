@@ -132,7 +132,7 @@ main = do
       Text.putStrLn cmd
       stat <- system $ Text.unpack cmd
       case stat of
-          ExitFailure _ -> error $ show stat
+          ExitFailure _ -> fail $ show stat
           _ -> return ()
   where
     readGhci = do
