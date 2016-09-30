@@ -3,6 +3,7 @@ module Main where
 
 
 import Control.Exception
+import Data.Monoid
 import Data.Version
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -24,10 +25,11 @@ data Options = Options
     , versionOpt     :: Bool
     , noConfOpt      :: Bool
     , interactiveOpt :: Bool
+    , runOpt         :: Bool
     }
   deriving (Show)
 
-defaultOptions = Options False False False False
+defaultOptions = Options False False False False False
 
 confFiles = "(.ghci or $HOME/.ghccheck)"
 
@@ -37,7 +39,8 @@ argMode = mode
     "ghccheck"
     defaultOptions
     ("The ghccheck program v" ++ showVersion version)
-    (flagArg (\_ _ -> Right defaultOptions) "...  (urecognized options and files passed on to GHC)")
+    (flagArg (\_ _ -> Right defaultOptions)
+      "...  (urecognized options and files passed on to GHC)")
     [ flagHelpSimple (\o -> o {helpOpt = True})
     , flagVersion (\o -> o {versionOpt = True})
     , flagNone
@@ -48,6 +51,10 @@ argMode = mode
         ["i", "interactive"]
         (\o -> o {interactiveOpt = True})
         ("Interactive mode (uses GHCi)")
+    , flagNone
+        ["r", "run"]
+        (\o -> o {runOpt = True})
+        ("Run the main definition in the program (à la runghc)")
     ]
 
 -- | All flags (including dashes) recognized by ghccheck
@@ -57,20 +64,27 @@ flags = map dash $ concatMap flagNames $ modeFlags argMode
     dash f@[_] = '-':f
     dash f     = "--" ++ f
 
--- | Read the arguments (obtained by `getArgs`). The second result contains all unrecognized
--- arguments.
-readArgs :: [String] -> (Options, [String])
-readArgs args = (opts,rest)
+-- | Read the arguments (obtained by `getArgs`). The second result contains all
+-- unrecognized arguments. The third result contains anything that comes after
+-- a plain "--" (including that empty flag).
+readArgs :: [String] -> (Options, [String], String)
+readArgs args
+    | interactiveOpt opts && runOpt opts =
+        error "ghccheck: cannot use both --interactive and --run"
+    | otherwise = (opts, otherOpts, unwords rest)
   where
-    rest = filter (`notElem` flags) args
+    (args',rest) = break (=="--") args
+    otherOpts = filter (`notElem` flags) args'
     opts = Options
       { helpOpt        = "-?" `elem` args || "--help"        `elem` args
       , versionOpt     = "-V" `elem` args || "--version"     `elem` args
       , noConfOpt      = "-n" `elem` args || "--no-conf"     `elem` args
       , interactiveOpt = "-i" `elem` args || "--interactive" `elem` args
+      , runOpt         = "-r" `elem` args || "--run"         `elem` args
       }
 
--- | Extract all options from a @.ghci@ file. Options are lines beginning with @:set @.
+-- | Extract all options from a @.ghci@ file. Options are lines beginning with
+-- @:set @.
 listGOpts :: Text -> [Text]
 listGOpts = filter (/="") . map getOpt . Text.lines
   where
@@ -97,17 +111,17 @@ readConfFile = fmap Text.unlines . readConf
             return []
         _ -> return [l]
 
--- Unfortunately, I wasn't able to use `processArgs` to parse the command line. The problem is that
--- I wasn't able to allow arbitrary additional options to be passed on to GHC. This is why I use
--- `fmap readArgs getArgs`.
+-- Unfortunately, I wasn't able to use `processArgs` to parse the command line.
+-- The problem is that I wasn't able to allow arbitrary additional options to be
+-- passed on to GHC. This is why I use `fmap readArgs getArgs`.
 
 main = do
-    (opts,rest) <- fmap readArgs getArgs
+    (opts,otherOpts,rest) <- fmap readArgs getArgs
     if helpOpt opts
       then print argMode
     else if versionOpt opts
       then putStrLn $ "ghccheck v" ++ showVersion version
-    else if null rest
+    else if null (concat otherOpts ++ rest)
       then print argMode
     else do
       home <- getHomeDirectory
@@ -119,16 +133,21 @@ main = do
                  readGhccheck ghccheck `catch` \(_ :: IOException) -> do
                    putStrLn $ "Configuration file " ++ confFiles ++ " not found"
                    return ""
-      let ghcMode = if interactiveOpt opts
-                      then "--interactive -ignore-dot-ghci"
-                      else "--make -O0 -no-link -dynamic"
-      let cmd = Text.unwords
-            $  [ "ghc"
-               , ghcMode
-               , "-hidir .ghc-temp -odir .ghc-temp"
-               ]
-            ++ gopts
-            ++ map Text.pack rest
+      let compiler = if runOpt opts then "runghc" else "ghc"
+          modeOpts
+            | interactiveOpt opts = ["--interactive", "-ignore-dot-ghci"]
+            | runOpt opts         = ["-ignore-dot-ghci"]
+            | otherwise           = ["--make", "-O0", "-no-link", "-dynamic"]
+          allOpts = modeOpts
+                 ++ ["-hidir .ghc-temp", "-odir .ghc-temp"]
+                 ++ map Text.pack otherOpts
+                 ++ gopts
+          allOpts'
+            | runOpt opts = map (\o -> "--ghc-arg=\"" <> o <> "\"") allOpts
+            | otherwise   = allOpts
+
+      let cmd = Text.unwords (compiler : allOpts' ++ [Text.pack rest])
+
       Text.putStrLn cmd
       stat <- system $ Text.unpack cmd
       case stat of
@@ -173,6 +192,6 @@ main = do
 --
 -- This was tested on GHC 7.10.2.
 
--- The `-dynamic` flag is needed to make it possible for GHCi to use the generated object files. It
--- also seems to make compilation a bit faster.
+-- The `-dynamic` flag is needed to make it possible for GHCi to use the
+-- generated object files. It also seems to make compilation a bit faster.
 

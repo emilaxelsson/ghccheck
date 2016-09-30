@@ -16,6 +16,7 @@ ghccheck [OPTIONS] ...  (urecognized options and files passed on to GHC)
   -V --version      Print version information
   -n --no-conf      Don't read a configuration file (.ghci or $HOME/.ghccheck)
   -i --interactive  Interactive mode (uses GHCi)
+  -r --run          Run the main definition in the program (à la runghc)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When calling `ghccheck ARG1 ARG2 ...`, it will call GHC with something like
