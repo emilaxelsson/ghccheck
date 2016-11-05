@@ -138,15 +138,19 @@ main = do
             | interactiveOpt opts = ["--interactive", "-ignore-dot-ghci"]
             | runOpt opts         = ["-ignore-dot-ghci"]
             | otherwise           = ["--make", "-O0", "-no-link", "-dynamic"]
-          allOpts = modeOpts
+          otherFlags = [Text.pack opt | opt <- otherOpts, ('-':_) <- [opt]]
+            -- Flags found in `otherOpts`
+          files = [Text.pack file | file <- otherOpts, (c:_) <- [file], c /= '-']
+            -- Non-flags (probably files) found in `otherOpts`
+          allFlags = modeOpts
                  ++ ["-hidir .ghc-temp", "-odir .ghc-temp"]
-                 ++ map Text.pack otherOpts
+                 ++ otherFlags
                  ++ gopts
-          allOpts'
-            | runOpt opts = map (\o -> "--ghc-arg=\"" <> o <> "\"") allOpts
-            | otherwise   = allOpts
+          allFlags'
+            | runOpt opts = map (\o -> "--ghc-arg=\"" <> o <> "\"") allFlags
+            | otherwise   = allFlags
 
-      let cmd = Text.unwords (compiler : allOpts' ++ [Text.pack rest])
+      let cmd = Text.unwords (compiler : allFlags' ++ files ++ [Text.pack rest])
 
       Text.putStrLn cmd
       stat <- system $ Text.unpack cmd
